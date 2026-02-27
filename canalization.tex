@@ -1,0 +1,892 @@
+\documentclass[namedate,webpdf,imammb]{ima-authoring-template}%
+% For numbered citations instead, use:
+% \documentclass[numbers,webpdf,imammb]{ima-authoring-template}%
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+
+\makeatletter
+\IfFileExists{ot1ptm.fd}{\input{ot1ptm.fd}}{}
+\IfFileExists{t1ptm.fd}{\input{t1ptm.fd}}{}
+\DeclareFontShape{OT1}{ptm}{bx}{n}{<-> ssub * ptm/b/n}{}
+\DeclareFontShape{T1}{ptm}{bx}{n}{<-> ssub * ptm/b/n}{}
+\DeclareFontShape{T1}{ptm}{m}{scit}{<-> ssub * ptm/m/it}{}
+\@ifundefined{description}{%
+  \newcommand{\descriptionlabel}[1]{\hspace\labelsep\bfseries #1}%
+  \newenvironment{description}{%
+    \list{}{\labelwidth\z@ \itemindent-\leftmargin \let\makelabel\descriptionlabel}%
+  }{\endlist}%
+}{}
+\def\shipout@PageObjects{}%
+\def\rest@dvi@pages{}%
+\renewcommand{\keywords}[1]{\g@addto@macro\@abstract{%
+  \vspace*{8pt}
+\par%
+\vbox{\fontsize{9bp}{11}\selectfont\raggedright\textit{Keywords:}\ #1}%
+}}%
+\makeatother
+\hbadness=10000
+\vbadness=10000
+
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{colormaps}
+\usetikzlibrary{arrows.meta,positioning,decorations.markings,shapes.geometric}
+
+\graphicspath{{Fig/}}
+
+\theoremstyle{thmstyletwo}%
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}%
+\newtheorem{lemma}[theorem]{Lemma}%
+\newtheorem{definition}[theorem]{Definition}%
+\newtheorem{remark}[theorem]{Remark}%
+
+\numberwithin{equation}{section}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\diam}{\operatorname{diam}}
+\newcommand{\dist}{\operatorname{dist}}
+\newcommand{\Hess}{\operatorname{Hess}}
+\newcommand{\GH}{\mathrm{GH}}
+
+\begin{document}
+
+\DOI{TBD}
+\copyrightyear{2026}
+\vol{00}
+\pubyear{2026}
+\access{Advance Access Publication Date: TBD}
+\appnotes{Research Article}
+\copyrightstatement{Published by Oxford University Press on behalf of the Institute of Mathematics and its Applications. All rights reserved.}
+\firstpage{1}
+
+\title[Warped-Seam Geometry and Canalization]{Warped-Seam Geometry and Canalization as Gromov--Hausdorff Collapse}
+
+\author{Lars R\"onnb\"ack*%
+\address{\orgdiv{Department of Computer and Systems Sciences}, \orgname{Stockholm University}, \orgaddress{Stockholm, Sweden}}}
+
+\authormark{R\"onnb\"ack}
+
+\corresp[*]{Corresponding author: \href{mailto:lars@uptochange.com}{lars@uptochange.com}}
+
+\received{Date}{0}{Year}
+\revised{Date}{0}{Year}
+\accepted{Date}{0}{Year}
+
+\abstract{Waddington's epigenetic landscape is often drawn as a ``ball rolling'' picture; here we give a concrete metric realization directly on gene-expression space $\R^{n}$. Given a smooth nonnegative scalar field $s$ (``landscape height'') and an admissible warping function $\phi$ with $\phi(0)=0$, we deform the Euclidean metric conformally by the factor $\phi(s)^2$. The resulting length metric collapses distances inside each basin of attraction. Under Morse, separation, and properness assumptions on $s$, we prove that the compact sublevel sets $X_\varepsilon=\{s\le \varepsilon\}$ converge in the Gromov--Hausdorff sense to a finite discrete metric space with one point per global minimum, and establish a sharp two-sided bound $\diam(X_\varepsilon^{(i)},d_\phi)=\Theta(\varepsilon^{\alpha+1/2})$ for power-law warping $\phi(s)=s^\alpha$. We extend the framework to Morse--Bott landscapes, where the zero set of $s$ is a union of compact connected submanifolds---modelling attracting cell-type manifolds rather than isolated fixed points---and show that each connected component still collapses to a single point under $d_\phi$. We connect the warped metric to the Freidlin--Wentzell quasi-potential for the gradient stochastic differential equation $\dd X=-\nabla s(X)\,\dd t+\sqrt{2T}\,\dd W$, showing that the quasi-potential is itself a warped length metric with position-dependent weight $|\nabla s|$, and that the dynamically natural choice $\phi(s)=\sqrt{s}$ arises from the local quadratic structure of $s$ near its minima. Finally, we illustrate the theory on a two-dimensional toggle-switch landscape modelling mutual gene repression, computing collapse rates and inter-basin distances explicitly.}
+\keywords{canalization; Waddington landscape; Gromov--Hausdorff convergence; Morse theory; Freidlin--Wentzell theory.}
+
+\maketitle
+
+% ============================================================
+
+\section{Introduction and Overview}
+
+In developmental biology, \emph{canalization} refers informally to robustness: many nearby states lead to the same outcome. Waddington's epigenetic landscape~\citep{Waddington1957} depicts this as valleys separated by ridges, and a large body of quantitative work---from quasi-potential reconstructions in gene-regulatory networks~\citep{Wang2011,Zhou2012} to single-cell trajectory inference~\citep{Rizvi2017,Schiebinger2019}---has sought to make this picture precise.
+
+This paper isolates a minimal geometric statement capturing one aspect of that picture: as we restrict to low landscape height $s\le\varepsilon$, each basin becomes metrically small, while distinct basins remain at a finite distance from each other.
+The mechanism is simple: define a weighted length functional where the cost of motion is multiplied by a factor $\phi(s)$ that vanishes at the global minima of $s$. Inside a low sublevel set, motion can ``hug'' the minimum and become cheap; any path connecting distinct minima must cross a ridge where $s$ is bounded away from $0$, forcing positive length.
+
+We call the resulting structure a \emph{warped-seam geometry}: the \emph{seam} is the scalar field $s$ itself---so named because it encodes how the space is stitched together, prescribing where basins meet and where ridges separate them. The \emph{warping} is the rule $\phi$ that converts the seam into a genuine metric via $g_\phi=\phi(s)^2 g_F$. Together, the seam tells us \emph{what} the geometric structure is; the warping tells us \emph{how strongly} it is felt (see Figure~\ref{fig:gh-schematic}).
+
+Gromov--Hausdorff convergence of degenerating metric spaces is a well-developed subject. The Cheeger--Gromov--Fukaya theory~\citep{CheegerGromov1986,Fukaya1987} studies collapsing of Riemannian manifolds under curvature bounds---a substantially deeper phenomenon than what occurs here. Our collapsing mechanism is more elementary: the conformal factor $\phi(s)$ simply vanishes at the minima, making basins metrically small without any curvature control.
+Our contribution is not the collapsing mechanism itself but its application to the canalization setting: we identify the biologically meaningful assumptions under which GH collapse occurs, establish sharp rates, connect the warped metric to stochastic dynamics, and provide explicit computations for gene-regulatory models.
+
+\smallskip
+\noindent\textbf{Contributions.}
+Beyond the basic Gromov--Hausdorff collapse theorem (Theorem~\ref{thm:main}), we make four additional contributions:
+\begin{enumerate}[label=(\arabic*)]
+\item \emph{Sharp collapse rate} (Proposition~\ref{prop:lower-bound}). We prove a matching lower bound on the diameter, yielding $\diam(X_\varepsilon^{(i)},d_\phi)=\Theta(\varepsilon^{\alpha+1/2})$ for $\phi(s)=s^\alpha$.
+\item \emph{Morse--Bott generalization} (Theorem~\ref{thm:morsebott}). When the zero set $\{s=0\}$ is a disjoint union of compact submanifolds---the biologically relevant case where a cell type is a manifold of expression states---the same GH collapse holds.
+\item \emph{Freidlin--Wentzell connection} (Section~\ref{sec:FW}). We show the quasi-potential of the gradient SDE $\dd X=-\nabla s\,\dd t+\sqrt{2T}\,\dd W$ is itself a warped length metric, and that $\phi(s)=\sqrt{s}$ is the dynamically natural warping.
+\item \emph{Toggle-switch example} (Section~\ref{sec:toggle}). We work out a concrete two-dimensional bistable landscape modelling mutual gene repression, computing inter-basin distances and collapse rates explicitly.
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[>=Stealth, scale=0.95]
+  % --- Left: continuous space ---
+  \begin{scope}[shift={(-3.8,0)}]
+    \node[above] at (0,2.6) {\small $(X_\varepsilon,d_\phi)$};
+    % Basin 1
+    \draw[thick, fill=blue!12] (-1.1,0) ellipse (1.0 and 1.5);
+    \node at (-1.1,0) {\small Basin $1$};
+    \fill (-1.1,0) circle (2pt) node[below=2pt] {\footnotesize $x_1^*$};
+    % Basin 2
+    \draw[thick, fill=red!12] (1.5,0) ellipse (0.85 and 1.3);
+    \node at (1.5,0) {\small Basin $2$};
+    \fill (1.5,0) circle (2pt) node[below=2pt] {\footnotesize $x_2^*$};
+    % Basin 3
+    \draw[thick, fill=green!12] (0.2,2.0) ellipse (0.65 and 0.5);
+    \node at (0.2,2.0) {\footnotesize Basin $3$};
+    \fill (0.2,2.0) circle (1.5pt);
+    % Ridge annotation
+    \draw[dashed, gray, thick] (-0.15,-1.7) -- (-0.15,1.2) -- (0.85,2.6);
+    \node[gray, rotate=90] at (-0.35,-0.4) {\footnotesize ridge $\{s\ge c\}$};
+    % Diameter annotation
+    \draw[<->, blue!70!black, thick] (-2.0,0.8) -- (-0.2,0.8);
+    \node[above, blue!70!black] at (-1.1,0.85) {\tiny $\diam\to 0$};
+    % Inter-basin
+    \draw[<->, thick, orange] (-0.2,-0.9) -- (0.75,-0.9);
+    \node[below, orange] at (0.27,-0.9) {\tiny $\to C_{12}>0$};
+  \end{scope}
+  % --- Arrow ---
+  \draw[-{Stealth[length=6pt]}, very thick] (1.0,0) -- node[above] {\small $\varepsilon\downarrow 0$} node[below] {\small GH} (2.8,0);
+  % --- Right: discrete space ---
+  \begin{scope}[shift={(4.8,0)}]
+    \node[above] at (0,2.6) {\small $(\{1,\dots,k\},d_\mathcal{F})$};
+    \fill[blue!60] (-1.0,0) circle (4pt) node[below=4pt] {\footnotesize $1$};
+    \fill[red!60] (1.0,0) circle (4pt) node[below=4pt] {\footnotesize $2$};
+    \fill[green!60] (0,1.8) circle (4pt) node[below=4pt] {\footnotesize $3$};
+    \draw[thick] (-1.0,0) -- node[below] {\footnotesize $C_{12}$} (1.0,0);
+    \draw[thick] (-1.0,0) -- node[left] {\footnotesize $C_{13}$} (0,1.8);
+    \draw[thick] (1.0,0) -- node[right] {\footnotesize $C_{23}$} (0,1.8);
+  \end{scope}
+\end{tikzpicture}
+\caption{Schematic of Gromov--Hausdorff collapse. Left: the sublevel set $X_\varepsilon$ with three basins separated by ridges (dashed). Under the warped metric $d_\phi$, each basin has diameter $\to 0$ while inter-basin distances converge to finite constants $C_{ij}$. Right: the limit discrete metric space.}
+\label{fig:gh-schematic}
+\end{figure}
+
+% ============================================================
+
+\section{Geometric Framework}
+
+Let $F=\R^{n}$ with Euclidean metric $g_F$.
+Let $s:F\to[0,\infty)$ be smooth.
+
+\begin{definition}[Admissible warping function]
+A function $\phi:[0,\infty)\to[0,\infty)$ is \emph{admissible} if:
+\begin{enumerate}[label=(\roman*)]
+\item $\phi$ is continuous on $[0,\infty)$ and smooth on $(0,\infty)$,
+\item $\phi$ is strictly increasing,
+\item $\phi(0)=0$, and
+\item $\phi(s)>0$ for $s>0$.
+\end{enumerate}
+\end{definition}
+
+\begin{definition}[Conformal length metric]
+Define the conformal (possibly degenerate) tensor
+\[
+g_\phi:=\phi(s(x))^2\,g_F.
+\]
+The induced length metric is
+\[
+d_\phi(x,y)
+=\inf_\gamma\int_0^1 \phi(s(\gamma(u)))\,|\gamma'(u)|\,\dd u,
+\]
+where the infimum ranges over piecewise $C^1$ curves $\gamma:[0,1]\to\R^n$ with $\gamma(0)=x$ and $\gamma(1)=y$.
+\end{definition}
+
+\begin{remark}[Degeneracy at minima]
+Since $\phi(0)=0$, the tensor $g_\phi$ degenerates on the zero set $\{s=0\}$. Nevertheless the definition above yields an extended length metric on $\R^n$. Under the separation assumption below, distinct minima have strictly positive $d_\phi$-distance.
+\end{remark}
+
+For subsets $A,B\subset\R^n$ we write
+\[
+d_\phi(A,B):=\inf\{d_\phi(a,b):a\in A,\,b\in B\}.
+\]
+
+% ============================================================
+
+\section{Structural Assumptions}
+\label{sec:assumptions}
+
+We assume:
+\begin{enumerate}[label=(A\arabic*)]
+\item $s$ is Morse.
+\item $s$ has exactly $k$ nondegenerate global minima $x_1^*,\dots,x_k^*$ with $s(x_i^*)=0$.
+\item (Ridge separation) There exists $c>0$ such that the connected components of $\{s<c\}$ containing distinct minima have disjoint closures.
+\item (Properness) $s(x)\to\infty$ as $|x|\to\infty$.
+\end{enumerate}
+
+Properness implies all sublevel sets are compact.
+For $\varepsilon>0$ define
+\[
+X_\varepsilon:=\{x\in\R^n:s(x)\le \varepsilon\},
+\]
+and for $0<\varepsilon<c$ let $X_\varepsilon^{(i)}$ denote the component containing $x_i^*$.
+
+% ============================================================
+
+\section{Local quadratic control and shrinkage}
+
+\begin{lemma}[Two-sided quadratic control near minima]
+\label{lem:quadratic}
+For each $i$ there exist constants $r_i>0$ and $0<\lambda_i\le \Lambda_i$ such that for all $|x-x_i^*|<r_i$,
+\[
+\tfrac{\lambda_i}{2}|x-x_i^*|^2\le s(x)\le \tfrac{\Lambda_i}{2}|x-x_i^*|^2.
+\]
+\end{lemma}
+
+\begin{proof}
+Since $x_i^*$ is a nondegenerate minimum, $\Hess s(x_i^*)$ is positive definite. By continuity of $\Hess s$ there is a neighborhood where the eigenvalues of $\Hess s(x)$ lie in $[\lambda_i,\Lambda_i]$.
+Integrating the second-order Taylor formula along the segment from $x_i^*$ to $x$ gives the stated two-sided bounds.
+\end{proof}
+
+\begin{lemma}[Sublevel shrinkage in Euclidean diameter]
+\label{lem:shrink}
+For each $i$ there exists $C_i>0$ such that for all sufficiently small $\varepsilon$,
+\[
+\diam(X_\varepsilon^{(i)},g_F)\le C_i\sqrt{\varepsilon}.
+\]
+\end{lemma}
+
+\begin{proof}
+By Lemma~\ref{lem:quadratic}, $s(x)\le\varepsilon$ implies $|x-x_i^*|\le \sqrt{2\varepsilon/\lambda_i}$. Hence $X_\varepsilon^{(i)}$ is contained in a Euclidean ball of that radius, and its Euclidean diameter is $O(\sqrt{\varepsilon})$.
+\end{proof}
+
+\begin{lemma}[Distance to the minimum]
+\label{lem:dist-to-min}
+For each $i$ there exist $\varepsilon_i>0$ and $K_i>0$ such that for all $0<\varepsilon\le \varepsilon_i$ and all $x\in X_\varepsilon^{(i)}$,
+\[
+d_\phi(x,x_i^*)\le K_i\,\phi(\kappa_i\varepsilon)\,\sqrt{\varepsilon},
+\]
+where $\kappa_i:=\Lambda_i/\lambda_i$ comes from Lemma~\ref{lem:quadratic}.
+Consequently, $\sup_{x\in X_\varepsilon^{(i)}}d_\phi(x,x_i^*)\to 0$ as $\varepsilon\downarrow 0$.
+\end{lemma}
+
+\begin{proof}
+Take $\varepsilon$ small enough that $X_\varepsilon^{(i)}\subset B(x_i^*,r_i)$ with $r_i$ from Lemma~\ref{lem:quadratic}. Fix $x\in X_\varepsilon^{(i)}$ and consider the Euclidean segment $\gamma(t)=x_i^*+t(x-x_i^*)$.
+
+For $t\in[0,1]$, Lemma~\ref{lem:quadratic} gives
+\[
+s(\gamma(t))\le \tfrac{\Lambda_i}{2}t^2|x-x_i^*|^2\le \tfrac{\Lambda_i}{\lambda_i}\,\varepsilon,
+\]
+since $|x-x_i^*|^2\le 2\varepsilon/\lambda_i$.
+Thus $\phi(s(\gamma(t)))\le \phi((\Lambda_i/\lambda_i)\varepsilon)=\phi(\kappa_i\varepsilon)$ and
+\[
+d_\phi(x,x_i^*)\le \int_0^1\phi(s(\gamma(t)))|\gamma'(t)|\,\dd t
+\le \phi(\kappa_i\varepsilon)\,|x-x_i^*|.
+\]
+Using $|x-x_i^*|\le \sqrt{2\varepsilon/\lambda_i}$ yields the bound with a constant $K_i$.
+\end{proof}
+
+\begin{remark}[When $\phi(\kappa\varepsilon)\asymp \phi(\varepsilon)$]
+For common choices such as $\phi(s)=s^\alpha$ (or more generally $\phi$ regularly varying at $0$), one has $\phi(\kappa\varepsilon)\asymp \phi(\varepsilon)$ for each fixed $\kappa>0$. In that case Lemma~\ref{lem:dist-to-min} can be stated with $\phi(\varepsilon)$ up to a change in constants.
+\end{remark}
+
+% ============================================================
+
+\section{Inter-basin distances}
+
+Fix $c>0$ from (A3). For each minimum define the basin at height $c$:
+\[
+A_i(c):=\text{the connected component of }\{s<c\}\text{ containing }x_i^*.
+\]
+Define the Euclidean gap
+\[
+w_{ij}:=\dist_{g_F}(\overline{A_i(c)},\overline{A_j(c)}).
+\]
+By (A3) and compactness of the closures, $w_{ij}>0$ for $i\ne j$.
+
+\begin{definition}[Inter-basin constants]
+For $i\ne j$ define
+\[
+C_{ij}:=d_\phi(x_i^*,x_j^*).
+\]
+\end{definition}
+
+\begin{lemma}[Positivity and finiteness]
+\label{lem:positiveCij}
+For $i\ne j$ we have $0<C_{ij}<\infty$.
+\end{lemma}
+
+\begin{proof}
+Finiteness follows because $\R^n$ is path connected and $\phi\circ s$ is finite everywhere.
+
+For positivity, any curve from $x_i^*$ to $x_j^*$ must leave $A_i(c)$ and enter $A_j(c)$, hence must intersect the closed set $\{s\ge c\}$.
+Along the portion of the curve in $\{s\ge c\}$ we have $\phi(s)\ge \phi(c)$. Moreover the curve must cross the Euclidean gap between the disjoint closed sets $\overline{A_i(c)}$ and $\overline{A_j(c)}$, which forces Euclidean arclength at least $w_{ij}$. Therefore $C_{ij}\ge \phi(c)w_{ij}>0$.
+\end{proof}
+
+\begin{lemma}[Distance convergence]
+\label{lem:distconv}
+For $i\ne j$,
+\[
+d_\phi(X_\varepsilon^{(i)},X_\varepsilon^{(j)})\to C_{ij}\qquad (\varepsilon\downarrow 0).
+\]
+\end{lemma}
+
+\begin{proof}
+For any $x\in X_\varepsilon^{(i)}$ and $y\in X_\varepsilon^{(j)}$, the triangle inequality gives
+\[
+\big|d_\phi(x,y)-d_\phi(x_i^*,x_j^*)\big|\le d_\phi(x,x_i^*)+d_\phi(y,x_j^*).
+\]
+Taking infimum over $x,y$ yields
+\[
+\big|d_\phi(X_\varepsilon^{(i)},X_\varepsilon^{(j)})-C_{ij}\big|
+\le \sup_{x\in X_\varepsilon^{(i)}}d_\phi(x,x_i^*)+\sup_{y\in X_\varepsilon^{(j)}}d_\phi(y,x_j^*),
+\]
+which tends to $0$ by Lemma~\ref{lem:dist-to-min}.
+\end{proof}
+
+% ============================================================
+
+\section{Canalization as Gromov--Hausdorff collapse}
+
+\begin{lemma}[Intra-basin collapse]
+\label{lem:intra}
+For each $i$ there exists $D_i>0$ such that for all sufficiently small $\varepsilon$,
+\[
+\diam(X_\varepsilon^{(i)},d_\phi)\le D_i\,\phi(\kappa_i\varepsilon)\,\sqrt{\varepsilon}.
+\]
+\end{lemma}
+
+\begin{proof}
+For $x,x'\in X_\varepsilon^{(i)}$ we estimate through the minimum:
+$d_\phi(x,x')\le d_\phi(x,x_i^*)+d_\phi(x_i^*,x')$.
+Taking the supremum over $x,x'$ and applying Lemma~\ref{lem:dist-to-min} gives the claim.
+\end{proof}
+
+\begin{theorem}[Canalization as GH collapse]
+\label{thm:main}
+Let $d_\mathcal{F}$ be the metric on $\{1,\dots,k\}$ given by $d_\mathcal{F}(i,i)=0$ and $d_\mathcal{F}(i,j)=C_{ij}$ for $i\ne j$. Then
+\[
+(X_\varepsilon,d_\phi)\xrightarrow{\GH}(\{1,\dots,k\},d_\mathcal{F})\qquad (\varepsilon\downarrow 0).
+\]
+\end{theorem}
+
+\begin{proof}
+Fix $\delta>0$.
+Choose $\varepsilon$ small such that for all $i$,
+\[\diam(X_\varepsilon^{(i)},d_\phi)<\delta/6\]
+by Lemma~\ref{lem:intra}, and for all $i\ne j$,
+\[\big|d_\phi(X_\varepsilon^{(i)},X_\varepsilon^{(j)})-C_{ij}\big|<\delta/6\]
+by Lemma~\ref{lem:distconv}.
+
+Define a correspondence $\mathcal{R}\subset X_\varepsilon\times\{1,\dots,k\}$ by $(x,i)\in\mathcal{R}$ iff $x\in X_\varepsilon^{(i)}$.
+
+If $(x,i),(y,j)\in\mathcal{R}$ and $i=j$ then $d_\mathcal{F}(i,j)=0$ while $d_\phi(x,y)\le \diam(X_\varepsilon^{(i)},d_\phi)<\delta/6$.
+If $i\ne j$, then
+\[
+\big|d_\phi(x,y)-d_\phi(X_\varepsilon^{(i)},X_\varepsilon^{(j)})\big|
+\le \diam(X_\varepsilon^{(i)},d_\phi)+\diam(X_\varepsilon^{(j)},d_\phi)<\delta/3,
+\]
+and so
+\[
+\big|d_\phi(x,y)-d_\mathcal{F}(i,j)\big|<\delta/3+\delta/6=\delta/2.
+\]
+Thus the distortion of $\mathcal{R}$ is $<\delta$, which implies $d_{\GH}((X_\varepsilon,d_\phi),(\{1,\dots,k\},d_\mathcal{F}))<\delta/2$.
+\end{proof}
+
+% ============================================================
+
+\section{Collapse rate}
+
+Near $x_i^*$,
+\[
+s(x)=\tfrac12 (x-x_i^*)^\top H_i (x-x_i^*)+O(|x-x_i^*|^3),
+\]
+where $H_i=\Hess s(x_i^*)$ is positive definite.
+Let $\lambda_{\min}$ be the smallest eigenvalue of $H_i$.
+
+Lemma~\ref{lem:intra} yields the scaling
+\[
+\diam(X_\varepsilon^{(i)},d_\phi)\le C\,\phi(\kappa_i\varepsilon)\,\sqrt{\varepsilon/\lambda_{\min}}
+\qquad (\varepsilon\downarrow 0)
+\]
+for a constant $C$ depending on the local quadratic bounds.
+
+If $\phi(s)=s^\alpha$ with $\alpha>0$, then
+\[
+\diam(X_\varepsilon^{(i)},d_\phi)=O\big(\varepsilon^{\alpha+1/2}\big).
+\]
+
+\begin{remark}[What controls the rate]
+The exponent $\alpha+\tfrac12$ combines how quickly motion becomes inexpensive near $s=0$ (encoded by $\phi$) and how quickly the basin radius shrinks (encoded by the quadratic model of $s$). Constants depend on the local condition number $\Lambda_i/\lambda_i$ from Lemma~\ref{lem:quadratic}.
+\end{remark}
+
+The upper bound is in fact sharp. We now establish a matching lower bound.
+
+\begin{proposition}[Matching lower bound on diameter]
+\label{prop:lower-bound}
+Under assumptions \textnormal{(A1)--(A4)}, for each $i$ there exists $c_i>0$ such that for all sufficiently small $\varepsilon$,
+\[
+\diam(X_\varepsilon^{(i)},d_\phi)
+\;\ge\; 2\int_0^{\sqrt{2\varepsilon/\Lambda_i}}\phi\!\big(\tfrac{\lambda_i}{2}\,u^2\big)\,\dd u.
+\]
+In particular, for $\phi(s)=s^\alpha$ with $\alpha>0$,
+\[
+\diam(X_\varepsilon^{(i)},d_\phi)=\Theta\!\big(\varepsilon^{\alpha+1/2}\big)
+\qquad(\varepsilon\downarrow 0).
+\]
+\end{proposition}
+
+\begin{proof}
+Let $e$ be any unit eigenvector of $H_i=\Hess s(x_i^*)$ and set $R=\sqrt{2\varepsilon/\Lambda_i}$, where $\Lambda_i$ is the largest eigenvalue of $H_i$.
+Define $x_\pm=x_i^*\pm Re$.
+By the upper quadratic bound (Lemma~\ref{lem:quadratic}),
+\[
+s(x_\pm)\le \tfrac{\Lambda_i}{2}R^2=\varepsilon,
+\]
+so $x_\pm\in X_\varepsilon^{(i)}$ for $\varepsilon$ small enough that $R<r_i$.
+
+\smallskip
+\noindent\emph{Projection argument.}
+Write $\pi(y)=\langle y-x_i^*,e\rangle$ for the signed distance from $x_i^*$ along $e$.
+For any piecewise $C^1$ curve $\gamma$ from $x_+$ to $x_-$ we have $|{\gamma}'|\ge|\pi'(\gamma)|$.
+Moreover, the lower quadratic bound gives
+$s(\gamma(t))\ge \tfrac{\lambda_i}{2}|\gamma(t)-x_i^*|^2
+\ge \tfrac{\lambda_i}{2}\pi(\gamma(t))^2$
+inside $B(x_i^*,r_i)$, and $s\ge \tfrac{\lambda_i}{2}r_i^2>0$ outside.
+Since $\phi$ is increasing,
+\[
+\int \phi(s(\gamma))\,|\gamma'|\,\dd t
+\;\ge\;\int \phi\!\big(\tfrac{\lambda_i}{2}\pi(\gamma)^2\big)\,|\pi'(\gamma)|\,\dd t.
+\]
+The projected path $u(t)=\pi(\gamma(t))$ starts at $R$, ends at $-R$, and by the intermediate value theorem visits every value in $(-R,R)$.
+Hence
+\[
+\int \phi\!\big(\tfrac{\lambda_i}{2}u^2\big)\,|\dd u|
+\;\ge\;\int_{-R}^{R}\phi\!\big(\tfrac{\lambda_i}{2}u^2\big)\,\dd u
+\;=\;2\int_0^R\phi\!\big(\tfrac{\lambda_i}{2}u^2\big)\,\dd u,
+\]
+since the integrand is even and nonnegative (backtracking only increases the integral).
+
+\smallskip
+\noindent\emph{Power-law evaluation.}
+For $\phi(s)=s^\alpha$, the integral evaluates to
+\[
+2\!\int_0^R \big(\tfrac{\lambda_i}{2}\big)^\alpha u^{2\alpha}\,\dd u
+=\frac{2(\lambda_i/2)^\alpha}{2\alpha+1}\,R^{2\alpha+1}
+=\frac{2(\lambda_i/2)^\alpha}{2\alpha+1}\,\Big(\frac{2\varepsilon}{\Lambda_i}\Big)^{\!\alpha+1/2},
+\]
+which is $\Theta(\varepsilon^{\alpha+1/2})$. Combining with the upper bound from Lemma~\ref{lem:intra} gives $\diam(X_\varepsilon^{(i)},d_\phi)=\Theta(\varepsilon^{\alpha+1/2})$.
+\end{proof}
+
+% ============================================================
+
+\section{Generalization to Morse--Bott landscapes}
+\label{sec:morsebott}
+
+In biological applications, a ``cell type'' is not a single expression state but a manifold of states sharing the same phenotypic identity. We therefore generalize the framework from isolated minima to compact attracting submanifolds.
+
+\begin{definition}[Morse--Bott landscape]
+We say that $s:\R^n\to[0,\infty)$ is a \emph{Morse--Bott landscape} if the following hold:
+\begin{enumerate}[label=(B\arabic*)]
+\item The zero set $\{s=0\}$ is a disjoint union $M_1\sqcup\cdots\sqcup M_k$ of compact connected smooth submanifolds of $\R^n$ (each without boundary).
+\item At every $p\in M_i$ the \emph{normal Hessian}
+\[
+H_p^\perp:=\Hess s(p)\big|_{(T_pM_i)^\perp}
+\]
+is positive definite.
+\item (Ridge separation) There exists $c>0$ such that the connected components of $\{s<c\}$ containing distinct $M_i$ have disjoint closures.
+\item (Properness) $s(x)\to\infty$ as $|x|\to\infty$.
+\end{enumerate}
+\end{definition}
+
+Condition (B2) is the standard Morse--Bott nondegeneracy: $s$ is allowed to be constant (zero) along $M_i$ but must grow quadratically in the normal directions.
+By compactness of each $M_i$, the normal eigenvalues are uniformly bounded:
+there exist $0<\lambda_i^\perp\le\Lambda_i^\perp$ such that $\lambda_i^\perp|\nu|^2\le \langle H_p^\perp \nu,\nu\rangle\le \Lambda_i^\perp|\nu|^2$ for all $p\in M_i$ and $\nu\in (T_pM_i)^\perp$.
+
+\begin{lemma}[Tubular quadratic control]
+\label{lem:tubular}
+For each $i$ there exists $\rho_i>0$ such that for all $x$ with $\dist(x,M_i)<\rho_i$,
+\[
+\tfrac{\lambda_i^\perp}{2}\dist(x,M_i)^2
+\;\le\; s(x)
+\;\le\; \tfrac{\Lambda_i^\perp}{2}\dist(x,M_i)^2.
+\]
+\end{lemma}
+
+\begin{proof}
+In a tubular neighborhood of $M_i$, write $x=\exp_p(\nu)$ where $p=\pi_i(x)$ is the nearest-point projection onto $M_i$ and $\nu\in(T_pM_i)^\perp$ with $|\nu|=\dist(x,M_i)$.
+Since $s|_{M_i}=0$ and $\nabla s|_{M_i}=0$ (because $M_i\subset\{s=0\}$ with $s\ge 0$), the second-order Taylor expansion along the fiber gives
+$s(x)=\tfrac12\langle H_p^\perp\nu,\nu\rangle+O(|\nu|^3)$.
+The uniform eigenvalue bounds and a compactness argument yield the claim for $\rho_i$ small enough.
+\end{proof}
+
+\begin{lemma}[Intra-component collapse in the Morse--Bott setting]
+\label{lem:intra-MB}
+For each $i$ there exists $D_i>0$ such that for all sufficiently small $\varepsilon$,
+\[
+\diam(X_\varepsilon^{(i)},d_\phi)\le D_i\,\phi(\kappa_i^\perp\varepsilon)\,\sqrt{\varepsilon},
+\]
+where $\kappa_i^\perp=\Lambda_i^\perp/\lambda_i^\perp$ and $X_\varepsilon^{(i)}$ is the component of $\{s\le\varepsilon\}$ containing $M_i$.
+In particular, $\diam(X_\varepsilon^{(i)},d_\phi)\to 0$.
+\end{lemma}
+
+\begin{proof}
+Fix $x,x'\in X_\varepsilon^{(i)}$. Let $p=\pi_i(x)$ and $p'=\pi_i(x')$ be their nearest points on $M_i$.
+Since $M_i$ is connected, there exists a path $\sigma:[0,1]\to M_i$ from $p$ to $p'$.
+Along $\sigma$, $s=0$, so $\phi(s(\sigma))=0$ and the $d_\phi$-length of $\sigma$ is zero.
+Therefore
+\[
+d_\phi(x,x')\le d_\phi(x,p)+d_\phi(p,p')+d_\phi(p',x')
+= d_\phi(x,p)+0+d_\phi(p',x').
+\]
+For $d_\phi(x,p)$: parametrize the normal segment as $\gamma(t)=p+t(x-p)$ for $t\in[0,1]$. Since $|\gamma(t)-p|=t\dist(x,M_i)$, Lemma~\ref{lem:tubular} gives
+$s(\gamma(t))\le\tfrac{\Lambda_i^\perp}{2}\,t^2\dist(x,M_i)^2\le\tfrac{\Lambda_i^\perp}{\lambda_i^\perp}\,\varepsilon=\kappa_i^\perp\varepsilon$,
+where the second inequality uses $\dist(x,M_i)^2\le 2\varepsilon/\lambda_i^\perp$ (from Lemma~\ref{lem:tubular}).
+Then $d_\phi(x,p)\le\phi(\kappa_i^\perp\varepsilon)\dist(x,M_i)\le\phi(\kappa_i^\perp\varepsilon)\sqrt{2\varepsilon/\lambda_i^\perp}$, exactly as in Lemma~\ref{lem:dist-to-min}.
+The same bound applies to $d_\phi(p',x')$, giving the claim.
+\end{proof}
+
+The inter-basin analysis (Section~5) carries over verbatim: any path from $M_i$ to $M_j$ must cross the ridge $\{s\ge c\}$ and traverse the Euclidean gap, so $C_{ij}:=d_\phi(M_i,M_j)>0$.
+
+\begin{theorem}[Canalization for Morse--Bott landscapes]
+\label{thm:morsebott}
+Under \textnormal{(B1)--(B4)}, with $d_\mathcal{F}(i,j)=C_{ij}=d_\phi(M_i,M_j)$,
+\[
+(X_\varepsilon,d_\phi)\xrightarrow{\GH}(\{1,\dots,k\},d_\mathcal{F})
+\qquad(\varepsilon\downarrow 0).
+\]
+\end{theorem}
+
+\begin{proof}
+The proof is identical to that of Theorem~\ref{thm:main}: the correspondence $(x,i)\in\mathcal{R}$ iff $x\in X_\varepsilon^{(i)}$ has distortion tending to $0$ by Lemmas~\ref{lem:intra-MB} and the Morse--Bott analogue of Lemma~\ref{lem:distconv}.
+\end{proof}
+
+\begin{remark}[Biological interpretation]
+In the Morse--Bott picture, each cell type $i$ is modelled by a manifold $M_i$ of expression states---capturing the well-known fact that cells of the same type exhibit heterogeneous gene expression.
+Canalization now means that the entire manifold $M_i$, together with a tube of nearby states, collapses to a single point in the limit: the internal variability within a cell type is metrically negligible compared to the distance between types.
+\end{remark}
+
+% ============================================================
+
+\section{Connection to Freidlin--Wentzell theory}
+\label{sec:FW}
+
+We now connect the warped metric to the stochastic dynamics most commonly associated with Waddington's landscape: the overdamped Langevin equation
+\begin{equation}\label{eq:SDE}
+\dd X_t = -\nabla s(X_t)\,\dd t + \sqrt{2T}\,\dd W_t,
+\end{equation}
+where $T>0$ is a noise intensity (``temperature'') and $W_t$ is standard Brownian motion in $\R^n$.
+
+\subsection*{The quasi-potential as a warped length metric}
+
+In the Freidlin--Wentzell theory~\citep{FreidlinWentzell1998}, the \emph{quasi-potential} from a stable equilibrium $a$ to a state $b$ is
+\[
+V(a,b)=\inf_{T>0}\;\inf_{\substack{\gamma\in C^1([0,T];\R^n)\\\gamma(0)=a,\;\gamma(T)=b}}
+\frac{1}{2}\int_0^T\big|\dot\gamma(t)+\nabla s(\gamma(t))\big|^2\,\dd t.
+\]
+For the gradient drift $b(x)=-\nabla s(x)$, the action functional simplifies to a reparametrization-invariant form. The following result is classical (see, e.g., \citep[Ch.~4]{FreidlinWentzell1998} and \citep{HeymannVandenEijnden2008}); we include the short proof for the reader's convenience and to set notation.
+
+\begin{proposition}[Geometric action (\citealt{FreidlinWentzell1998,HeymannVandenEijnden2008})]
+\label{prop:GAF}
+For two global minima $x_i^*,x_j^*$ with $s(x_i^*)=s(x_j^*)=0$,
+\begin{equation}\label{eq:GAF}
+V(x_i^*,x_j^*)
+\;=\;\inf_\gamma\int|\nabla s(\gamma)|\,|\dd\gamma|
+\;=:\;d_{|\nabla s|}(x_i^*,x_j^*),
+\end{equation}
+where the infimum is over piecewise $C^1$ paths connecting $x_i^*$ to $x_j^*$.
+\end{proposition}
+
+\begin{proof}
+Expanding the action:
+\begin{align*}
+\frac{1}{2}\int_0^T|\dot\gamma+\nabla s(\gamma)|^2\,\dd t
+&=\frac{1}{2}\int_0^T|\dot\gamma|^2\,\dd t
++\int_0^T\langle\dot\gamma,\nabla s(\gamma)\rangle\,\dd t
++\frac{1}{2}\int_0^T|\nabla s(\gamma)|^2\,\dd t.
+\end{align*}
+The cross term equals $s(\gamma(T))-s(\gamma(0))=0$ (since both endpoints have $s=0$), so the action becomes $\frac{1}{2}\int|\dot\gamma|^2\,\dd t+\frac{1}{2}\int|\nabla s(\gamma)|^2\,\dd t$.
+By the AM--GM inequality,
+$\tfrac{1}{2}(|\dot\gamma|^2+|\nabla s|^2)\ge |\dot\gamma|\,|\nabla s|$,
+with equality if and only if $|\dot\gamma(t)|=|\nabla s(\gamma(t))|$ for all $t$.
+The right-hand side $\int|\dot\gamma|\,|\nabla s(\gamma)|\,\dd t=\int|\nabla s(\gamma)|\,|\dd\gamma|$ is reparametrization-invariant, giving~\eqref{eq:GAF}.
+Equality is achieved along \emph{instantons}: paths satisfying $\dot\gamma=+\nabla s(\gamma)$ (time-reversed gradient flow) reparametrized to match the arclength condition.
+\end{proof}
+
+\begin{remark}[Position-dependent vs.\ scalar weight]
+The quasi-potential defines a warped length metric $d_{|\nabla s|}$ with \emph{position-dependent} weight $\psi(x)=|\nabla s(x)|$, which in general is not a function of $s(x)$ alone.
+Our framework uses $\phi(s(x))$, a weight depending on $x$ only through the scalar landscape value.
+The two frameworks coincide when level sets of $s$ are round (all eigenvalues of $\Hess s$ equal); in general they are related as follows.
+\end{remark}
+
+\begin{proposition}[Comparison near minima]
+\label{prop:comparison}
+In the quadratic regime $|x-x_i^*|<r_i$, the gradient satisfies
+\[
+\frac{\sqrt{2}\,\lambda_i}{\sqrt{\Lambda_i}}\,\sqrt{s(x)}
+\;\le\;|\nabla s(x)|
+\;\le\;\frac{\sqrt{2}\,\Lambda_i}{\sqrt{\lambda_i}}\,\sqrt{s(x)}.
+\]
+Consequently, for paths $\gamma$ contained in $B(x_i^*,r_i)$,
+\begin{equation}\label{eq:local-comparison}
+\frac{\sqrt{2}\,\lambda_i}{\sqrt{\Lambda_i}}\;\ell_{\sqrt{s}}(\gamma)
+\;\le\;\ell_{|\nabla s|}(\gamma)
+\;\le\;\frac{\sqrt{2}\,\Lambda_i}{\sqrt{\lambda_i}}\;\ell_{\sqrt{s}}(\gamma),
+\end{equation}
+where $\ell_w(\gamma)=\int w(\gamma)\,|\dd\gamma|$ denotes the weighted length.
+When $\lambda_i=\Lambda_i$ (isotropic minimum) both constants equal $\sqrt{2\lambda_i}$.
+\end{proposition}
+
+\begin{proof}
+Write $h=x-x_i^*$ and $H_i=\Hess s(x_i^*)$.
+In the quadratic regime, $\nabla s(x)=H_i h+O(|h|^2)$ and $s(x)=\tfrac12 h^\top H_i h+O(|h|^3)$.
+The eigenvalue bounds on $H_i$ give $\lambda_i|h|\le|H_i h|\le\Lambda_i|h|$ and $\tfrac{\lambda_i}{2}|h|^2\le s(x)\le\tfrac{\Lambda_i}{2}|h|^2$.
+Therefore $|h|\le\sqrt{2s(x)/\lambda_i}$ and $|h|\ge\sqrt{2s(x)/\Lambda_i}$, so
+\[
+|\nabla s(x)|\ge \lambda_i|h|\ge \lambda_i\sqrt{2s(x)/\Lambda_i}
+=\frac{\sqrt{2}\,\lambda_i}{\sqrt{\Lambda_i}}\,\sqrt{s(x)}
+\]
+and
+\[
+|\nabla s(x)|\le \Lambda_i|h|\le\Lambda_i\sqrt{2s(x)/\lambda_i}
+=\frac{\sqrt{2}\,\Lambda_i}{\sqrt{\lambda_i}}\,\sqrt{s(x)}.
+\]
+Integrating along $\gamma$ yields~\eqref{eq:local-comparison}.
+\end{proof}
+
+\begin{remark}[The dynamically natural choice $\alpha=\tfrac12$]
+\label{rem:alpha-half}
+Proposition~\ref{prop:comparison} shows that near minima the quasi-potential weight $|\nabla s|$ is comparable to $\sqrt{s}$, which corresponds to $\phi(s)=s^{1/2}$ in our framework.
+The choice $\alpha=\tfrac12$ therefore has a distinguished dynamical meaning: it is the unique power-law exponent for which the warped metric locally approximates the Freidlin--Wentzell quasi-potential.
+With this choice the collapse rate is $\diam=\Theta(\varepsilon)$ (linear in $\varepsilon$), and the inter-basin distances $C_{ij}$ approximate the quasi-potential barriers controlling rare transitions between cell types.
+\end{remark}
+
+\subsection*{Explicit comparison in one dimension}
+
+For $n=1$ with $s(x)=(x^2-1)^2$, the quasi-potential between the two minima is
+\[
+V(-1,1)=\int_{-1}^1|s'(x)|\,\dd x=\int_{-1}^1 4|x|(1-x^2)\,\dd x=2.
+\]
+This is consistent with the classical formula for gradient systems: $V(x_i^*,x_j^*)=2\,s(x_s)$ where $x_s$ is the lowest saddle separating the two minima~\citep[Ch.~4]{FreidlinWentzell1998}. Here $s(0)=1$ and $V=2\cdot 1=2$.
+The warped length distance with $\phi(s)=\sqrt{s}$ is
+\[
+d_{\sqrt{s}}(-1,1)=\int_{-1}^1(1-x^2)\,\dd x=\tfrac{4}{3}.
+\]
+The ratio $V/d_{\sqrt{s}}=3/2$ reflects the anisotropy of $|s'(x)|/\sqrt{s(x)}=4|x|$, which ranges from $0$ at the saddle to $4$ at the minima.
+
+% ============================================================
+
+\section{Examples}
+\label{sec:examples}
+
+\subsection{A one-dimensional double well}
+
+Let $n=1$ and $s(x)=(x^2-1)^2$, which has two nondegenerate global minima at $x^*=\pm 1$.
+Take $\phi(s)=s^\alpha$ with $\alpha>0$.
+For $\varepsilon$ small, $X_\varepsilon$ is the union of two intervals around $\pm 1$ and the limit metric space has two points.
+
+In one dimension the minimizing curve between minima is the interval path, hence
+\[
+C_{12}=d_\phi(-1,1)=\int_{-1}^1\phi(s(x))\,\dd x=\int_{-1}^1 (x^2-1)^{2\alpha}\,\dd x<\infty.
+\]
+By Proposition~\ref{prop:lower-bound}, $\diam(X_\varepsilon^{(i)},d_\phi)=\Theta(\varepsilon^{\alpha+1/2})$.
+For the dynamically natural choice $\alpha=\tfrac12$ (Remark~\ref{rem:alpha-half}), the collapse is linear: $\diam=\Theta(\varepsilon)$.
+
+\subsection{A two-dimensional toggle switch}
+\label{sec:toggle}
+
+A genetic toggle switch consists of two genes with mutual repression: when gene~1 is highly expressed, it suppresses gene~2, and vice versa~\citep{Gardner2000}.
+This produces bistability with two stable cell fates.
+The standard ODE model uses Hill-function kinetics and is not a gradient system; its quasi-potential must be computed numerically~\citep{Wang2011}.
+Here we use an explicit polynomial proxy that captures the essential bistable topology---two minima separated by a saddle---while remaining analytically tractable as a Morse function.
+
+We model this via the landscape
+\begin{equation}\label{eq:toggle}
+s(x,y)=\big[(x-1)^2+y^2\big]\big[x^2+(y-1)^2\big],
+\end{equation}
+on $\R^2$, where $x$ and $y$ represent the expression levels of genes~1 and~2 respectively.
+
+\smallskip
+\noindent\textbf{Zero set and minima.}
+The first factor vanishes only at $p_1=(1,0)$ (gene~1 on, gene~2 off) and the second only at $p_2=(0,1)$ (gene~2 on, gene~1 off), so $\{s=0\}=\{p_1,p_2\}$.
+
+\smallskip
+\noindent\textbf{Hessian computation.}
+Write $s=fg$ with $f=(x-1)^2+y^2$ and $g=x^2+(y-1)^2$.
+At $p_1=(1,0)$: $f=0$, $g=2$, $\nabla f=(0,0)$, so $\Hess s|_{p_1}=g(p_1)\cdot\Hess f|_{p_1}=2\cdot 2I=4I$.
+By the symmetry $(x,y)\mapsto(y,x)$ that exchanges $p_1\leftrightarrow p_2$, also $\Hess s|_{p_2}=4I$.
+Both minima are isotropic with $\lambda_i=\Lambda_i=4$ and condition number $\kappa_i=1$.
+
+\smallskip
+\noindent\textbf{Saddle point.}
+The unique critical point in the interior region $\{f>0,\,g>0\}$ is the midpoint $p_s=(\tfrac12,\tfrac12)$ (see the completeness check below); it has $s(p_s)=\tfrac14$.
+The Hessian at $p_s$ has eigenvalues $\pm 2$, confirming a nondegenerate saddle.
+There are no other critical points (see below), so $s$ is Morse with exactly two minima and one saddle.
+
+\smallskip
+\noindent\textbf{Verification of (A1)--(A4).}
+(A1)~Morse: checked above.
+(A2)~Two global minima at $p_1,p_2$ with $s=0$.
+(A3)~Ridge: for any $c<\tfrac14$, the components of $\{s<c\}$ around $p_1$ and $p_2$ are separated by the saddle region.
+(A4)~Properness: $s(x,y)\to\infty$ as $|(x,y)|\to\infty$ since $s$ is a degree-4 polynomial with positive leading terms.
+
+\smallskip
+\noindent\textbf{Completeness of critical-point analysis.}
+Write $s=fg$ with $f=(x-1)^2+y^2$ and $g=x^2+(y-1)^2$, so $f,g\ge 0$ and
+\[
+\nabla s = g\nabla f+f\nabla g.
+\]
+If $f=0$ then $(x,y)=(1,0)=p_1$, and if $g=0$ then $(x,y)=(0,1)=p_2$.
+Otherwise $f,g>0$ and the critical-point equations become
+\[
+g(x-1)+fx=0,\qquad gy+f(y-1)=0.
+\]
+Introduce centered coordinates $u=x-\tfrac12$, $v=y-\tfrac12$, set $r^2=u^2+v^2$, and note
+\[
+f=r^2+(v-u)+\tfrac12,\qquad g=r^2+(u-v)+\tfrac12.
+\]
+With $a:=r^2+\tfrac12$ and $d:=v-u$ (so $f=a+d$ and $g=a-d$), the two equations simplify to
+\[
+2au+d=0,\qquad 2av-d=0.
+\]
+Hence $v=-u$, and then $d=v-u=-2u$ together with $d=-2au$ gives either $u=0$ (so $v=0$ and $(x,y)=(\tfrac12,\tfrac12)=p_s$) or $a=1$ (so $r^2=\tfrac12$ and $(u,v)=(\pm\tfrac12,\mp\tfrac12)$, which correspond to $p_1$ and $p_2$).
+Therefore $\{p_1,p_2,p_s\}$ are all critical points of $s$.
+
+\smallskip
+\noindent\textbf{Collapse rate.}
+Since $\kappa_i=1$ and $\lambda_i=4$, Proposition~\ref{prop:lower-bound} and Lemma~\ref{lem:intra} give
+\[
+\diam(X_\varepsilon^{(i)},d_\phi)=\Theta(\varepsilon^{\alpha+1/2})
+\qquad (i=1,2).
+\]
+For $\alpha=\tfrac12$: $\diam=\Theta(\varepsilon)$.
+
+\smallskip
+\noindent\textbf{Inter-basin distance.}
+The straight-line path $\gamma(t)=(1-t,t)$, $t\in[0,1]$, connects $p_1$ to $p_2$ with $|\gamma'|=\sqrt{2}$ and
+\[
+s(\gamma(t))=4t^2(1-t)^2.
+\]
+This gives the upper bound
+\[
+C_{12}\le \sqrt{2}\int_0^1\phi(4t^2(1-t)^2)\,\dd t.
+\]
+For $\phi(s)=s^\alpha$:
+\[
+C_{12}\le \sqrt{2}\cdot 4^\alpha\int_0^1 t^{2\alpha}(1-t)^{2\alpha}\,\dd t
+=\sqrt{2}\cdot 4^\alpha\,B(2\alpha+1,2\alpha+1),
+\]
+where $B$ is the Beta function.
+Some explicit values:
+\begin{center}
+\begin{tabular}{c|ccc}
+$\alpha$ & $1/2$ & $1$ & $2$ \\[3pt]
+\hline\\[-8pt]
+$C_{12}\le$ & $\dfrac{\sqrt{2}}{3}\approx 0.471$ & $\dfrac{2\sqrt{2}}{15}\approx 0.189$ & $\dfrac{8\sqrt{2}}{315}\approx 0.036$
+\end{tabular}
+\end{center}
+
+For a lower bound, any path from $p_1$ to $p_2$ must cross the ridge $\{s\ge c\}$ (for $c<\tfrac14$) and traverse the Euclidean gap $w_{12}>0$ between the basin closures.
+The general bound $C_{12}\ge\phi(c)\,w_{12}$ from Lemma~\ref{lem:positiveCij} applies.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+  \begin{axis}[
+    view={0}{90},
+    width=9cm, height=9cm,
+    domain=-0.3:1.3, y domain=-0.3:1.3,
+    samples=50,
+    xlabel={$x$ (gene 1)},
+    ylabel={$y$ (gene 2)},
+    colormap/viridis,
+    colorbar,
+    colorbar style={ylabel={$s(x,y)$}},
+    point meta min=0, point meta max=0.5,
+    title={Toggle-switch landscape $s(x{,}y)=[(x{-}1)^2+y^2][x^2+(y{-}1)^2]$},
+    title style={at={(0.5,1.05)}, font=\small},
+  ]
+    \addplot3[
+      contour filled={
+        number=20,
+        labels=false,
+      },
+    ] {min(((x-1)^2+y^2)*(x^2+(y-1)^2), 0.5)};
+    \addplot3[
+      contour prepared,
+      contour/draw color=black,
+      contour/labels=false,
+      thick,
+    ] {min(((x-1)^2+y^2)*(x^2+(y-1)^2), 0.5)};
+    % Mark minima
+    \node[circle, fill=white, inner sep=1.5pt, draw=black, thick] at (axis cs:1,0) {};
+    \node[above right, font=\footnotesize] at (axis cs:1,0) {$p_1$};
+    \node[circle, fill=white, inner sep=1.5pt, draw=black, thick] at (axis cs:0,1) {};
+    \node[above right, font=\footnotesize] at (axis cs:0,1) {$p_2$};
+    % Mark saddle
+    \node[diamond, fill=white, inner sep=1.2pt, draw=black, thick] at (axis cs:0.5,0.5) {};
+    \node[above right, font=\footnotesize] at (axis cs:0.5,0.5) {$p_s$};
+    % Straight-line path
+    \addplot[white, very thick, dashed] coordinates {(1,0) (0,1)};
+  \end{axis}
+\end{tikzpicture}
+\caption{Contour plot of the toggle-switch landscape~\eqref{eq:toggle}. The two minima $p_1=(1,0)$ and $p_2=(0,1)$ (circles) represent the two cell fates; the saddle $p_s=(\tfrac12,\tfrac12)$ (diamond) separates the basins. The dashed line shows the straight-line path used to compute the upper bound on $C_{12}$. For small $\varepsilon$, the sublevel set $\{s\le\varepsilon\}$ consists of two small discs around $p_1$ and $p_2$ that collapse under $d_\phi$.}
+\label{fig:toggle}
+\end{figure}
+
+\smallskip
+\noindent\textbf{Biological interpretation.}
+The landscape~\eqref{eq:toggle} models the two cell fates arising from mutual repression: state $p_1=(1,0)$ is the ``gene-1-dominant'' fate and $p_2=(0,1)$ is the ``gene-2-dominant'' fate.
+The warped metric makes each cell type metrically small (collapse rate $\Theta(\varepsilon^{\alpha+1/2})$) while preserving the inter-fate distance $C_{12}$.
+The ratio $C_{12}/\diam$ quantifies the \emph{canalization strength}: larger values indicate more robust separation between fates.
+In the dynamically natural scaling $\alpha=\tfrac12$, the inter-basin distance $C_{12}\approx 0.471$ should be compared with the Freidlin--Wentzell quasi-potential $V(p_1,p_2)$, which governs the rate of noise-induced fate switching.
+
+% ============================================================
+
+\section{Discussion and outlook}
+
+We have given a rigorous geometric formalization of canalization---the robustness of developmental outcomes---via Gromov--Hausdorff collapse of conformally warped sublevel sets.
+The main theorem (Theorem~\ref{thm:main}) and its Morse--Bott extension (Theorem~\ref{thm:morsebott}) show that low sublevel sets of a landscape $s$ collapse to a finite discrete space under the warped metric $d_\phi$.
+The sharp collapse rate $\Theta(\varepsilon^{\alpha+1/2})$ (Proposition~\ref{prop:lower-bound}) quantifies how rapidly intra-basin distances vanish relative to inter-basin distances.
+The Freidlin--Wentzell connection (Propositions~\ref{prop:GAF} and~\ref{prop:comparison}) anchors the choice $\alpha=\tfrac12$ in stochastic dynamics.
+
+Several natural extensions remain:
+\begin{enumerate}[label=(E\arabic*)]
+\item \emph{Graph limits:} replacing $X_\varepsilon$ by neighborhoods of the gradient-flow skeleton (minima, index-1 saddles, connecting orbits) may produce metric-graph GH limits, connecting to the Reeb graph and persistent homology.
+\item \emph{Curvature analysis:} the sectional curvature of $g_\phi$ diverges near $\{s=0\}$; characterizing the blow-up rate and establishing Alexandrov curvature bounds $\kappa(\varepsilon)$ on the sublevel sets would place the paper in the RCD literature.
+\item \emph{Data-driven $\phi$:} different near-zero behaviors of $\phi$ correspond to different canalization strengths. Given single-cell RNA-seq data and an inferred landscape $\hat{s}$, the warping function $\phi$ could in principle be estimated from observed variability scaling within basins.
+\item \emph{Non-gradient dynamics:} many gene-regulatory ODEs are not gradient systems. Extending the framework to quasi-potential landscapes defined via paths of minimum Freidlin--Wentzell action would cover this biologically important case.
+\item \emph{Wasserstein collapse:} placing the Boltzmann measure $\mu_T\propto e^{-s/T}$ on $(X_\varepsilon,d_\phi)$ and proving Wasserstein convergence to a discrete measure on the minima would connect to optimal transport.
+\end{enumerate}
+
+\section*{Acknowledgements}
+The author thanks colleagues for discussions on geometric analysis and mathematical biology.
+The author also discloses the use of AI-assisted tools (Grok 4.2, Opus 4.6, and GPT-5.2) to help with drafting and editing text and with generating \LaTeX/TikZ figure code; all mathematical claims, calculations, and final wording were reviewed and validated by the author. AI tools are not listed as authors.
+
+\begin{thebibliography}{99}
+
+\bibitem[Bott(1954)]{Bott1954}
+Bott, R. (1954) Nondegenerate critical manifolds. \textit{Ann. of Math.} (2) 60, 248--261.
+
+\bibitem[Burago et~al.(2001)]{Burago2001}
+Burago, D., Burago, Y. and Ivanov, S. (2001) \textit{A Course in Metric Geometry}. American Mathematical Society, Providence, RI.
+
+\bibitem[Cheeger and Gromov(1986)]{CheegerGromov1986}
+Cheeger, J. and Gromov, M. (1986) Collapsing Riemannian manifolds while keeping their curvature bounded. I. \textit{J. Differential Geom.} 23, 309--346.
+
+\bibitem[Freidlin and Wentzell(1998)]{FreidlinWentzell1998}
+Freidlin, M. I. and Wentzell, A. D. (1998) \textit{Random Perturbations of Dynamical Systems}, 2nd edn. Springer, New York.
+
+\bibitem[Fukaya(1987)]{Fukaya1987}
+Fukaya, K. (1987) Collapsing of Riemannian manifolds and eigenvalues of Laplace operator. \textit{Invent. Math.} 87, 517--547.
+
+\bibitem[Gardner et~al.(2000)]{Gardner2000}
+Gardner, T. S., Cantor, C. R. and Collins, J. J. (2000) Construction of a genetic toggle switch in \textit{Escherichia coli}. \textit{Nature} 403, 339--342.
+
+\bibitem[Heymann and Vanden-Eijnden(2008)]{HeymannVandenEijnden2008}
+Heymann, M. and Vanden-Eijnden, E. (2008) The geometric minimum action method: a least action principle on the space of curves. \textit{Commun. Pure Appl. Math.} 61, 1052--1117.
+
+\bibitem[Huang et~al.(2005)]{Huang2005}
+Huang, S., Eichler, G., Bar-Yam, Y. and Ingber, D. E. (2005) Cell fates as high-dimensional attractor states of a complex gene regulatory network. \textit{Phys. Rev. Lett.} 94, 128701.
+
+\bibitem[Milnor(1963)]{Milnor1963}
+Milnor, J. (1963) \textit{Morse Theory}. Princeton University Press, Princeton, NJ.
+
+\bibitem[Rizvi et~al.(2017)]{Rizvi2017}
+Rizvi, A. H., Camara, P. G., Kandber, E. K. \textit{et~al}. (2017) Single-cell topological RNA-seq analysis reveals insights into cellular differentiation and development. \textit{Nat. Biotechnol.} 35, 551--560.
+
+\bibitem[Schiebinger et~al.(2019)]{Schiebinger2019}
+Schiebinger, G., Shu, J., Tabaka, M. \textit{et~al}. (2019) Optimal-transport analysis of single-cell gene expression identifies developmental trajectories in reprogramming. \textit{Cell} 176, 928--943.
+
+\bibitem[Waddington(1957)]{Waddington1957}
+Waddington, C. H. (1957) \textit{The Strategy of the Genes}. Allen \& Unwin, London.
+
+\bibitem[Wang et~al.(2011)]{Wang2011}
+Wang, J., Zhang, K., Xu, L. and Wang, E. (2011) Quantifying the Waddington landscape and biological paths for development and differentiation. \textit{Proc. Natl. Acad. Sci. USA} 108, 8257--8262.
+
+\bibitem[Zhou et~al.(2012)]{Zhou2012}
+Zhou, J. X., Aliyu, M. D. S., Aurell, E. and Huang, S. (2012) Quasi-potential landscape in complex multi-stable systems. \textit{J. R. Soc. Interface} 9, 3539--3553.
+
+\end{thebibliography}
+
+\end{document}

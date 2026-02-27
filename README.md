@@ -1,2 +1,2 @@
 # canalization
-Warped-Seam Geometry and Canalizationas Gromov-Hausdorff Collapse, a scientific paper.
+Warped-Seam Geometry and Canalization as Gromov--Hausdorff Collapse.

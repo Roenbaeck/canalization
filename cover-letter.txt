@@ -1,0 +1,17 @@
+Dear Editors,
+
+Please consider our manuscript, "Warped-Seam Geometry and Canalization as Gromov--Hausdorff Collapse," for publication in Mathematical Medicine and Biology.
+
+Corresponding author:
+Lars Rnnbck
+Department of Computer and Systems Sciences
+Stockholm University
+Stockholm, Sweden
+Email: lars@uptochange.com
+
+AI-assisted tools disclosure:
+In preparing this manuscript, I used AI-assisted tools (Grok 4.2, Opus 4.6, and GPT-5.2) to help with drafting and editing text and with generating LaTeX/TikZ figure code. All mathematical claims, calculations, and the final wording were reviewed and validated by me. AI tools are not listed as authors.
+
+Sincerely,
+
+Lars Rnnbck
